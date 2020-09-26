@@ -1,5 +1,6 @@
 import pygame
 import sys
+import math
 from pygame.locals import *
 
 # 画像の読み込み
@@ -19,16 +20,18 @@ ss_x = 480
 ss_y = 360
 ss_d = 0
 key_spc = 0
+key_z = 0
 
 MISSILE_MAX = 200
 msl_no = 0
 msl_f = [False]*MISSILE_MAX
 msl_x = [0]*MISSILE_MAX
 msl_y = [0]*MISSILE_MAX
+msl_a = [0]*MISSILE_MAX
 
 
 def move_starship(scrn, key): # 自機の移動
-    global ss_x, ss_y, ss_d, key_spc
+    global ss_x, ss_y, ss_d, key_spc, key_z
     ss_d = 0
     if key[K_UP] == 1:
         ss_y = ss_y - 20
@@ -50,25 +53,39 @@ def move_starship(scrn, key): # 自機の移動
             ss_x = 920
     key_spc = (key_spc+1)*key[K_SPACE]
     if key_spc%5 == 1:
-        set_missile()
+        set_missile(0)
+    key_z = (key_z+1)*key[K_z]
+    if key_z == 1:
+        set_missile(10)
     scrn.blit(img_sship[3], [ss_x-8, ss_y+40+(tmr%3)*2])
     scrn.blit(img_sship[ss_d], [ss_x-37, ss_y-48])
 
 
-def set_missile(): # 自機の発射する弾をセットする
+def set_missile(typ): # 自機の発射する弾をセットする
     global msl_no
-    msl_f[msl_no] = True
-    msl_x[msl_no] = ss_x
-    msl_y[msl_no] = ss_y-50
-    msl_no = (msl_no+1)%MISSILE_MAX
+    if typ == 0: # 単発
+        msl_f[msl_no] = True
+        msl_x[msl_no] = ss_x
+        msl_y[msl_no] = ss_y-50
+        msl_a[msl_no] = 270
+        msl_no = (msl_no+1)%MISSILE_MAX
+    if typ == 10: # 弾幕
+        for a in range(160, 390, 10):
+            msl_f[msl_no] = True
+            msl_x[msl_no] = ss_x
+            msl_y[msl_no] = ss_y-50
+            msl_a[msl_no] = a
+            msl_no = (msl_no+1)%MISSILE_MAX
 
 
 def move_missile(scrn): # 弾の移動
     for i in range(MISSILE_MAX):
         if msl_f[i] == True:
-            msl_y[i] = msl_y[i] - 36
-            scrn.blit(img_weapon, [msl_x[i]-10, msl_y[i]-32])
-            if msl_y[i] < 0:
+            msl_x[i] = msl_x[i] + 36*math.cos(math.radians(msl_a[i]))
+            msl_y[i] = msl_y[i] + 36*math.sin(math.radians(msl_a[i]))
+            img_rz = pygame.transform.rotozoom(img_weapon, -90-msl_a[i], 1.0)
+            scrn.blit(img_rz, [msl_x[i]-img_rz.get_width()/2, msl_y[i]-img_rz.get_height()/2])
+            if msl_y[i] < 0 or msl_x[i] < 0 or msl_x[i] > 960:
                 msl_f[i] = False
 
 
